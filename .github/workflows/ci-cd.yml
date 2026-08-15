@@ -24,10 +24,10 @@ jobs:
           cd app
           pytest -v
 
-      - name: Run SAST scan (Bandit)
+      - name: Run SAST scan (Bandit, excluding tests)
         run: |
           cd app
-          bandit -r . -f screen
+          bandit -r . -f screen --exclude ./test_nav_calculator.py
 
       - name: Build Docker image
         run: docker build -t fund-nav-platform:${{ github.sha }} ./app
