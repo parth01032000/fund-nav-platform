@@ -1,0 +1,33 @@
+name: CI/CD Pipeline
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-test-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd app
+          pip install pytest bandit
+
+      - name: Run tests
+        run: |
+          cd app
+          pytest -v
+
+      - name: Run SAST scan (Bandit)
+        run: |
+          cd app
+          bandit -r . -f screen
+
+      - name: Build Docker image
+        run: docker build -t fund-nav-platform:${{ github.sha }} ./app

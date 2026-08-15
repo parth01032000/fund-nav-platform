@@ -1,0 +1,1 @@
+Planned ECR repository: fund-nav-platform-bfa6f5da (image_scanning_configuration: scan_on_push = true)

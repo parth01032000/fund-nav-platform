@@ -1,0 +1,15 @@
+---
+- name: Deploy NAV platform
+  hosts: app_servers
+  become: true
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Run NAV container
+      docker_container:
+        name: fund-nav-platform
+        image: "{{ ecr_registry }}/fund-nav-platform:latest"
+        state: started
