@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 data/fund.db
 .terraform/
+*.tfstate
+*.tfstate.backup
+ecr-repo-name-*.txt
+data/nav_report.json
