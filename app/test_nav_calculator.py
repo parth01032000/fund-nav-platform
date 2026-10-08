@@ -24,3 +24,21 @@ def test_zero_shares_raises():
     conn.commit()
     with pytest.raises(ValueError):
         calculate_nav(1, conn)
+
+
+def test_unknown_fund_raises():
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE funds (fund_id INTEGER, cash REAL, liabilities REAL, shares_outstanding REAL)")
+    conn.execute("CREATE TABLE holdings (fund_id INTEGER, quantity REAL, price REAL)")
+    conn.commit()
+    with pytest.raises(ValueError, match="not found"):
+        calculate_nav(99, conn)
+
+
+def test_fund_with_no_holdings():
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE funds (fund_id INTEGER, cash REAL, liabilities REAL, shares_outstanding REAL)")
+    conn.execute("CREATE TABLE holdings (fund_id INTEGER, quantity REAL, price REAL)")
+    conn.execute("INSERT INTO funds VALUES (1, 1000, 200, 100)")
+    conn.commit()
+    assert calculate_nav(1, conn) == 8.0
