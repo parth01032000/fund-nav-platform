@@ -8,25 +8,24 @@ def get_connection(db_path="data/fund.db"):
 def calculate_nav(fund_id, conn):
     cur = conn.cursor()
 
-    cur.execute("SELECT SUM(quantity * price) FROM holdings WHERE fund_id = ?", (fund_id,))
-    total_holdings_value = cur.fetchone()[0] or 0
-
-    cur.execute("SELECT cash FROM funds WHERE fund_id = ?", (fund_id,))
-    cash = cur.fetchone()[0] or 0
-
-    cur.execute("SELECT liabilities FROM funds WHERE fund_id = ?", (fund_id,))
-    liabilities = cur.fetchone()[0] or 0
-
-    cur.execute("SELECT shares_outstanding FROM funds WHERE fund_id = ?", (fund_id,))
-    shares = cur.fetchone()[0]
-
-    total_assets = total_holdings_value + cash
-    net_assets = total_assets - liabilities
+    cur.execute(
+        "SELECT cash, liabilities, shares_outstanding FROM funds WHERE fund_id = ?",
+        (fund_id,),
+    )
+    row = cur.fetchone()
+    if row is None:
+        raise ValueError(f"Fund {fund_id} not found")
+    cash, liabilities, shares = (value or 0 for value in row)
 
     if shares == 0:
         raise ValueError("Shares outstanding cannot be zero")
 
+    cur.execute("SELECT SUM(quantity * price) FROM holdings WHERE fund_id = ?", (fund_id,))
+    holdings_value = cur.fetchone()[0] or 0
+
+    net_assets = holdings_value + cash - liabilities
     return round(net_assets / shares, 4)
+
 
 def generate_report(fund_id, conn, output_path="data/nav_report.json"):
     nav = calculate_nav(fund_id, conn)
