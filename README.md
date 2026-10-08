@@ -141,6 +141,59 @@ docker build -t fund-nav ./app
 docker run --rm -v "$(pwd)/data:/app/data" fund-nav
 ```
 
+## Walkthrough: run it and verify the result
+
+Run everything from the repository root.
+
+**1. Start from a clean database.** The setup script is not safe to run twice: it would insert the holdings a second time and double the NAV.
+
+```bash
+rm -f data/fund.db data/nav_report.json
+sqlite3 data/fund.db < data/setup_db.sql
+```
+
+**2. Check the inputs and work out NAV in plain SQL.**
+
+```bash
+sqlite3 -header -column data/fund.db "SELECT ticker, quantity, price, quantity*price AS value FROM holdings WHERE fund_id=1;"
+sqlite3 -header -column data/fund.db "SELECT (SELECT SUM(quantity*price) FROM holdings WHERE fund_id=1) AS holdings_value, cash, liabilities, shares_outstanding FROM funds WHERE fund_id=1;"
+sqlite3 data/fund.db "SELECT ROUND(((SELECT SUM(quantity*price) FROM holdings WHERE fund_id=1) + cash - liabilities) / shares_outstanding, 4) FROM funds WHERE fund_id=1;"
+```
+
+Expected: three holdings rows, holdings value `2563400.0`, NAV `2.9434`.
+
+**3. Run the program and compare.**
+
+```bash
+python3 app/nav_calculator.py
+python3 -m json.tool data/nav_report.json
+```
+
+The program must report the same `2.9434` as the SQL.
+
+**4. Tests and security scan.**
+
+```bash
+cd app
+python -m pytest -v
+cd ..
+bandit -r app -x app/test_nav_calculator.py
+```
+
+**5. Docker.**
+
+```bash
+docker build -t fund-nav:v1 ./app
+docker images fund-nav
+docker run --rm fund-nav:v1 ls -la /app
+docker run --rm fund-nav:v1
+docker run --rm -v "$(pwd)/data:/app/data" fund-nav:v1
+```
+
+- The `ls` command shows the image contains only the script and its requirements.
+- Running without the data volume fails with `unable to open database file`. This is intentional: the database is not baked into the image.
+- Running with `-v` mounts the local `data` folder, and the container prints the same `2.9434`.
+
 The image contains only the script and its dependencies. The database is mounted as a volume, so data stays separate from code. Create `data/fund.db` first (see Quick start).
 
 ## CI pipeline
